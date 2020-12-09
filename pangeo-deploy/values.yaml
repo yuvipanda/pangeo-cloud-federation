@@ -99,17 +99,24 @@ daskhub:
       extraConfig:
         optionHandler: |
           from dask_gateway_server.options import Options, Float, String, Mapping
+          import string
+          from escapism import escape
+
+          dns_safe_chars = set(string.ascii_lowercase + string.digits)
+
           def cluster_options(user):
+              # All valid label values must be DNS Safe
+              dns_safe_username = escapism.escape(user.name, safe=safe_chars, escape_char='-').lower()
               def option_handler(options):
                   if ":" not in options.image:
                       raise ValueError("When specifying an image you must also provide a tag")
                   extra_annotations = {
-                      "hub.jupyter.org/username": user.name,
+                      "hub.jupyter.org/username": dns_safe_username,
                       "prometheus.io/scrape": "true",
                       "prometheus.io/port": "8787",
                   }
                   extra_labels = {
-                      "hub.jupyter.org/username": user.name,
+                      "hub.jupyter.org/username": dns_safe_username,
                   }
                   # We multiply the requests by 0.95 to ensure that that they
                   # pack well onto nodes. Kubernetes reserves a small fraction
